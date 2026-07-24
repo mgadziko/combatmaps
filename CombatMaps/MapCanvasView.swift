@@ -75,6 +75,13 @@ final class MapCanvasView: NSView {
     }
 
     override func scrollWheel(with event: NSEvent) {
+        if event.hasPreciseScrollingDeltas == false {
+            panOffset.x += event.scrollingDeltaX * 12.0
+            panOffset.y += event.scrollingDeltaY * 12.0
+            needsDisplay = true
+            return
+        }
+
         let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : -event.scrollingDeltaX
         if let selectedOverlayID,
            let index = overlays.firstIndex(where: { $0.id == selectedOverlayID }) {

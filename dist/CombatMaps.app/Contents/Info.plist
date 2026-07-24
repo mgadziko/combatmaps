@@ -38,6 +38,8 @@
 	<string>CombatMaps</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.ricercar.CombatMaps</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -55,7 +57,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CombatMapsBuildTimestamp</key>
-	<string>260724-1351</string>
+	<string>260724-1406</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>
