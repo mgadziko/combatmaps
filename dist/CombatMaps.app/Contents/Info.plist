@@ -17,9 +17,10 @@
 				<string>jpg</string>
 				<string>jpeg</string>
 				<string>png</string>
+				<string>pdf</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Image Document</string>
+			<string>Map Document</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -29,6 +30,7 @@
 				<string>public.png</string>
 				<string>public.jpeg</string>
 				<string>com.compuserve.gif</string>
+				<string>com.adobe.pdf</string>
 			</array>
 			<key>NSDocumentClass</key>
 			<string>CombatMaps.ImageDocument</string>
@@ -57,7 +59,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CombatMapsBuildTimestamp</key>
-	<string>260724-1642</string>
+	<string>260724-1647</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>

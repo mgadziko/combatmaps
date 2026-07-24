@@ -10,7 +10,7 @@ final class ImageDocument: NSDocument {
     }
 
     override class var readableTypes: [String] {
-        ["public.png", "public.jpeg", "com.compuserve.gif"]
+        ["public.png", "public.jpeg", "com.compuserve.gif", "com.adobe.pdf"]
     }
 
     override func read(from url: URL, ofType typeName: String) throws {
