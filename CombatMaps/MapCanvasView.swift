@@ -270,16 +270,24 @@ final class MapCanvasView: NSView {
         context.saveGState()
         let shadowColor = contrastShadowColor(for: color)
         context.setShadow(
-            offset: CGSize(width: 0, height: -4.0 / zoom),
-            blur: 12.0 / zoom,
-            color: shadowColor.withAlphaComponent(0.95).cgColor
+            offset: .zero,
+            blur: 28.0 / zoom,
+            color: shadowColor.withAlphaComponent(1.0).cgColor
         )
+        shadowColor.withAlphaComponent(0.85).setStroke()
+        path.lineWidth = 10.0 / zoom
+        path.stroke()
+        context.restoreGState()
+
+        shadowColor.withAlphaComponent(0.70).setStroke()
+        path.lineWidth = 5.0 / zoom
+        path.stroke()
+
         color.withAlphaComponent(0.20).setFill()
         color.setStroke()
         path.lineWidth = 2.0 / zoom
         path.fill()
         path.stroke()
-        context.restoreGState()
     }
 
     private func contrastShadowColor(for color: NSColor) -> NSColor {
@@ -305,8 +313,38 @@ final class MapCanvasView: NSView {
 
     private func hitTestOverlay(at point: CGPoint) -> AreaOverlay? {
         overlays.reversed().first { overlay in
-            overlay.rect.insetBy(dx: -8.0 / zoom, dy: -8.0 / zoom).contains(point)
+            resizeHandleRect(for: overlay.rect).insetBy(dx: -6.0 / zoom, dy: -6.0 / zoom).contains(point)
+                || overlayContains(point, overlay: overlay)
         }
+    }
+
+    private func overlayContains(_ point: CGPoint, overlay: AreaOverlay) -> Bool {
+        switch overlay.kind {
+        case .line:
+            let start = rotatedPoint(overlay.rect.origin, in: overlay)
+            let end = rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY), in: overlay)
+            return distance(from: point, toSegmentFrom: start, to: end) <= max(10.0 / zoom, 5.0)
+        case .circle, .oval, .rectangle, .cone:
+            let path = rotatedPath(for: overlay)
+            if path.contains(point) {
+                return true
+            }
+            path.lineWidth = max(10.0 / zoom, 5.0)
+            return path.bounds.insetBy(dx: -path.lineWidth, dy: -path.lineWidth).contains(point)
+        }
+    }
+
+    private func distance(from point: CGPoint, toSegmentFrom start: CGPoint, to end: CGPoint) -> CGFloat {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        guard dx != 0 || dy != 0 else {
+            return hypot(point.x - start.x, point.y - start.y)
+        }
+
+        let lengthSquared = dx * dx + dy * dy
+        let t = max(0.0, min(1.0, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared))
+        let projection = CGPoint(x: start.x + t * dx, y: start.y + t * dy)
+        return hypot(point.x - projection.x, point.y - projection.y)
     }
 
     private func resizeHandleRect(for rect: CGRect) -> CGRect {
