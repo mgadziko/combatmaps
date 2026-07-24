@@ -3,6 +3,7 @@ import AppKit
 enum OverlayKind: String, Codable {
     case line
     case circle
+    case oval
     case rectangle
     case cone
 }
@@ -162,7 +163,7 @@ final class MapCanvasView: NSView {
             let minSide: CGFloat = 8.0
             let width = max(minSide, imagePoint.x - overlay.rect.minX)
             let height = max(minSide, imagePoint.y - overlay.rect.minY)
-            if overlay.kind == .cone {
+            if overlay.kind == .circle || overlay.kind == .cone {
                 let side = max(width, height)
                 overlays[index].rect = clampedOverlayRect(CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: side, height: side))
             } else {
@@ -190,14 +191,19 @@ final class MapCanvasView: NSView {
         for overlay in overlays {
             let selected = overlay.id == selectedOverlayID
             let overlayColor = overlay.color.nsColor
-            let fill = overlayColor.withAlphaComponent(selected ? 0.30 : 0.20)
-            let stroke = selected ? NSColor.white : overlayColor
+            let fill = overlayColor.withAlphaComponent(0.20)
+            let stroke = overlayColor
             let path = rotatedPath(for: overlay)
-            fill.setFill()
-            stroke.setStroke()
-            path.lineWidth = 2.0 / zoom
-            path.fill()
-            path.stroke()
+
+            if selected {
+                drawSelectionShadow(for: path, color: overlayColor)
+            } else {
+                fill.setFill()
+                stroke.setStroke()
+                path.lineWidth = 2.0 / zoom
+                path.fill()
+                path.stroke()
+            }
 
             if selected {
                 NSColor.white.setFill()
@@ -214,7 +220,7 @@ final class MapCanvasView: NSView {
             path.line(to: rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY), in: overlay))
             path.lineWidth = 6.0 / zoom
             return path
-        case .circle:
+        case .circle, .oval:
             return NSBezierPath(ovalIn: overlay.rect)
         case .rectangle:
             let path = NSBezierPath()
@@ -249,6 +255,37 @@ final class MapCanvasView: NSView {
             x: center.x + dx * cosine - dy * sine,
             y: center.y + dx * sine + dy * cosine
         )
+    }
+
+    private func drawSelectionShadow(for path: NSBezierPath, color: NSColor) {
+        guard let context = NSGraphicsContext.current?.cgContext else {
+            color.withAlphaComponent(0.20).setFill()
+            color.setStroke()
+            path.lineWidth = 2.0 / zoom
+            path.fill()
+            path.stroke()
+            return
+        }
+
+        context.saveGState()
+        let shadowColor = contrastShadowColor(for: color)
+        context.setShadow(
+            offset: CGSize(width: 0, height: -4.0 / zoom),
+            blur: 12.0 / zoom,
+            color: shadowColor.withAlphaComponent(0.95).cgColor
+        )
+        color.withAlphaComponent(0.20).setFill()
+        color.setStroke()
+        path.lineWidth = 2.0 / zoom
+        path.fill()
+        path.stroke()
+        context.restoreGState()
+    }
+
+    private func contrastShadowColor(for color: NSColor) -> NSColor {
+        let rgbColor = color.usingColorSpace(.deviceRGB) ?? color
+        let luminance = 0.299 * rgbColor.redComponent + 0.587 * rgbColor.greenComponent + 0.114 * rgbColor.blueComponent
+        return luminance > 0.55 ? .black : .white
     }
 
     private func clampedOverlayRect(_ rect: CGRect) -> CGRect {

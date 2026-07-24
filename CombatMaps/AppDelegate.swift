@@ -31,6 +31,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         activeCanvasView()?.addOverlay(kind: .circle, color: overlayColor)
     }
 
+    @objc func addOvalOverlay(_ sender: Any?) {
+        activeCanvasView()?.addOverlay(kind: .oval, color: overlayColor)
+    }
+
     @objc func addRectangleOverlay(_ sender: Any?) {
         activeCanvasView()?.addOverlay(kind: .rectangle, color: overlayColor)
     }

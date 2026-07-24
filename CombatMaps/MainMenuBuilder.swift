@@ -10,6 +10,11 @@ enum MainMenuBuilder {
         appItem.submenu = appMenu
         appMenu.addItem(withTitle: "About CombatMaps", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide CombatMaps", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthersItem = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit CombatMaps", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         let fileItem = NSMenuItem()
@@ -32,6 +37,7 @@ enum MainMenuBuilder {
         areaItem.submenu = areaMenu
         areaMenu.addItem(withTitle: "Line", action: #selector(AppDelegate.addLineOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(withTitle: "Circle", action: #selector(AppDelegate.addCircleOverlay(_:)), keyEquivalent: "")
+        areaMenu.addItem(withTitle: "Oval", action: #selector(AppDelegate.addOvalOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(withTitle: "Rectangle", action: #selector(AppDelegate.addRectangleOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(withTitle: "Cone", action: #selector(AppDelegate.addConeOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(.separator())
