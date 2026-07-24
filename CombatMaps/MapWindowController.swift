@@ -3,6 +3,7 @@ import AppKit
 final class MapWindowController: NSWindowController, NSWindowDelegate {
     let canvasView: MapCanvasView
     private let documentURL: URL?
+    private let targetScreen: NSScreen?
 
     init(image: NSImage, documentURL: URL?) {
         self.documentURL = documentURL
@@ -12,8 +13,9 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
         }
 
         let screen = MapWindowController.preferredScreen()
+        targetScreen = screen
         let window = NSWindow(
-            contentRect: screen?.frame ?? NSRect(x: 100, y: 100, width: 1200, height: 800),
+            contentRect: screen?.visibleFrame ?? NSRect(x: 100, y: 100, width: 1200, height: 800),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false,
@@ -32,6 +34,9 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
     }
 
     override func showWindow(_ sender: Any?) {
+        if let targetScreen, let window {
+            window.setFrame(targetScreen.visibleFrame, display: false)
+        }
         super.showWindow(sender)
         window?.makeKeyAndOrderFront(sender)
         NSApp.activate(ignoringOtherApps: true)
@@ -56,7 +61,7 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
         guard NSScreen.screens.count > 1 else {
             return NSScreen.main
         }
-        let main = NSScreen.main
-        return NSScreen.screens.first { $0 != main } ?? main
+        let primary = NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.main
+        return NSScreen.screens.first { $0 != primary } ?? primary
     }
 }

@@ -11,6 +11,7 @@ struct AreaOverlay: Codable, Identifiable {
     var id = UUID()
     var kind: OverlayKind
     var rect: CGRect
+    var rotationRadians: CGFloat = 0
 }
 
 final class MapCanvasView: NSView {
@@ -74,10 +75,17 @@ final class MapCanvasView: NSView {
     }
 
     override func scrollWheel(with event: NSEvent) {
+        let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : -event.scrollingDeltaX
+        if let selectedOverlayID,
+           let index = overlays.firstIndex(where: { $0.id == selectedOverlayID }) {
+            overlays[index].rotationRadians += delta * 0.015
+            needsDisplay = true
+            return
+        }
+
         let cursor = convert(event.locationInWindow, from: nil)
         let before = imagePoint(forViewPoint: cursor)
-        let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : -event.scrollingDeltaX
-        let factor = pow(1.0018, delta)
+        let factor = pow(1.0045, delta)
         zoom = max(0.05, min(20.0, zoom * factor))
         let after = viewPoint(forImagePoint: before)
         panOffset.x += cursor.x - after.x
@@ -120,7 +128,12 @@ final class MapCanvasView: NSView {
             let minSide: CGFloat = 8.0
             let width = max(minSide, imagePoint.x - overlay.rect.minX)
             let height = max(minSide, imagePoint.y - overlay.rect.minY)
-            overlays[index].rect = CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: width, height: height)
+            if overlay.kind == .cone {
+                let side = max(width, height)
+                overlays[index].rect = CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: side, height: side)
+            } else {
+                overlays[index].rect = CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: width, height: height)
+            }
         }
         needsDisplay = true
     }
@@ -144,7 +157,7 @@ final class MapCanvasView: NSView {
             let selected = overlay.id == selectedOverlayID
             let fill = NSColor.systemTeal.withAlphaComponent(selected ? 0.30 : 0.20)
             let stroke = selected ? NSColor.white : NSColor.systemTeal
-            let path = overlayPath(for: overlay)
+            let path = rotatedPath(for: overlay)
             fill.setFill()
             stroke.setStroke()
             path.lineWidth = 2.0 / zoom
@@ -174,14 +187,32 @@ final class MapCanvasView: NSView {
             let path = NSBezierPath()
             path.move(to: CGPoint(x: overlay.rect.midX, y: overlay.rect.minY))
             path.line(to: CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY))
-            path.curve(
-                to: CGPoint(x: overlay.rect.minX, y: overlay.rect.maxY),
-                controlPoint1: CGPoint(x: overlay.rect.midX + overlay.rect.width * 0.5, y: overlay.rect.midY),
-                controlPoint2: CGPoint(x: overlay.rect.midX - overlay.rect.width * 0.5, y: overlay.rect.midY)
-            )
+            path.line(to: CGPoint(x: overlay.rect.minX, y: overlay.rect.maxY))
             path.close()
             return path
         }
+    }
+
+    private func rotatedPath(for overlay: AreaOverlay) -> NSBezierPath {
+        let path = overlayPath(for: overlay)
+        guard overlay.rotationRadians != 0 else {
+            return path
+        }
+
+        let transform = AffineTransform(
+            translationByX: overlay.rect.midX,
+            byY: overlay.rect.midY
+        )
+        let rotation = AffineTransform(rotationByRadians: overlay.rotationRadians)
+        let reverseTranslation = AffineTransform(
+            translationByX: -overlay.rect.midX,
+            byY: -overlay.rect.midY
+        )
+        var combined = transform
+        combined.append(rotation)
+        combined.append(reverseTranslation)
+        path.transform(using: combined)
+        return path
     }
 
     private func hitTestOverlay(at point: CGPoint) -> AreaOverlay? {
