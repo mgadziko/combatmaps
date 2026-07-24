@@ -121,6 +121,7 @@ struct DocumentProfile: Codable {
     var fogOfWarVisible: Bool = false
     var fogOpeningCenter: CGPoint?
     var fogOpeningDiameter: CGFloat?
+    var overlays: [AreaOverlay] = []
 
     private enum CodingKeys: String, CodingKey {
         case zoom
@@ -129,6 +130,7 @@ struct DocumentProfile: Codable {
         case fogOfWarVisible
         case fogOpeningCenter
         case fogOpeningDiameter
+        case overlays
     }
 
     init(
@@ -137,7 +139,8 @@ struct DocumentProfile: Codable {
         mapRotationDegrees: Int = 0,
         fogOfWarVisible: Bool = false,
         fogOpeningCenter: CGPoint? = nil,
-        fogOpeningDiameter: CGFloat? = nil
+        fogOpeningDiameter: CGFloat? = nil,
+        overlays: [AreaOverlay] = []
     ) {
         self.zoom = zoom
         self.panOffset = panOffset
@@ -145,6 +148,7 @@ struct DocumentProfile: Codable {
         self.fogOfWarVisible = fogOfWarVisible
         self.fogOpeningCenter = fogOpeningCenter
         self.fogOpeningDiameter = fogOpeningDiameter
+        self.overlays = overlays
     }
 
     init(from decoder: Decoder) throws {
@@ -155,6 +159,7 @@ struct DocumentProfile: Codable {
         fogOfWarVisible = try container.decodeIfPresent(Bool.self, forKey: .fogOfWarVisible) ?? false
         fogOpeningCenter = try container.decodeIfPresent(CGPoint.self, forKey: .fogOpeningCenter)
         fogOpeningDiameter = try container.decodeIfPresent(CGFloat.self, forKey: .fogOpeningDiameter)
+        overlays = try container.decodeIfPresent([AreaOverlay].self, forKey: .overlays) ?? []
     }
 }
 

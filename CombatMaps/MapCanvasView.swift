@@ -66,7 +66,8 @@ final class MapCanvasView: NSView {
             mapRotationDegrees: mapRotationDegrees,
             fogOfWarVisible: fogOfWarVisible,
             fogOpeningCenter: fogOpeningCenter,
-            fogOpeningDiameter: fogOpeningDiameter
+            fogOpeningDiameter: fogOpeningDiameter,
+            overlays: overlays
         )
     }
 
@@ -95,6 +96,8 @@ final class MapCanvasView: NSView {
         fogOfWarVisible = profile.fogOfWarVisible
         fogOpeningCenter = profile.fogOpeningCenter
         fogOpeningDiameter = profile.fogOpeningDiameter
+        overlays = profile.overlays
+        selectedOverlayID = nil
         needsDisplay = true
     }
 
