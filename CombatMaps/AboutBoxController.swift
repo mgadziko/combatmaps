@@ -52,7 +52,7 @@ final class AboutBoxView: NSVisualEffectView {
 
         addLabel("CombatMaps", frame: NSRect(x: 20, y: 196, width: 512, height: 22), font: .systemFont(ofSize: 13, weight: .semibold))
         addLabel(aboutVersionText(), frame: NSRect(x: 20, y: 172, width: 512, height: 22), font: .systemFont(ofSize: 13))
-        addLabel("Read-only tactical image map viewer.", frame: NSRect(x: 20, y: 134, width: 512, height: 34), font: .systemFont(ofSize: 13))
+        addLabel("Tactical map viewer for horizontal screen gaming with miniatures.", frame: NSRect(x: 20, y: 134, width: 512, height: 34), font: .systemFont(ofSize: 13))
         addLabel("©2026 Mark Gadzikowski. All Rights Reserved Worldwide.", frame: NSRect(x: 20, y: 100, width: 512, height: 22), font: .systemFont(ofSize: 13, weight: .semibold))
         addLabel("Contact: combatmaps@quantumpenguin.net", frame: NSRect(x: 20, y: 70, width: 512, height: 22), font: .systemFont(ofSize: 13))
 

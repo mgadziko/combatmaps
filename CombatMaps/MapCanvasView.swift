@@ -11,7 +11,36 @@ struct AreaOverlay: Codable, Identifiable {
     var id = UUID()
     var kind: OverlayKind
     var rect: CGRect
+    var color: OverlayColor = .systemTeal
     var rotationRadians: CGFloat = 0
+}
+
+struct OverlayColor: Codable {
+    static let systemTeal = OverlayColor(.systemTeal)
+
+    var red: CGFloat
+    var green: CGFloat
+    var blue: CGFloat
+    var alpha: CGFloat
+
+    init(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat = 1.0) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+    }
+
+    init(_ color: NSColor) {
+        let rgbColor = color.usingColorSpace(.deviceRGB) ?? .systemTeal
+        red = rgbColor.redComponent
+        green = rgbColor.greenComponent
+        blue = rgbColor.blueComponent
+        alpha = rgbColor.alphaComponent
+    }
+
+    var nsColor: NSColor {
+        NSColor(deviceRed: red, green: green, blue: blue, alpha: alpha)
+    }
 }
 
 final class MapCanvasView: NSView {
@@ -47,12 +76,12 @@ final class MapCanvasView: NSView {
         needsDisplay = true
     }
 
-    func addOverlay(kind: OverlayKind) {
+    func addOverlay(kind: OverlayKind, color: OverlayColor) {
         window?.makeFirstResponder(self)
         let imageRect = visibleImageRect()
         let side = min(imageRect.width, imageRect.height) * 0.25
         let origin = CGPoint(x: imageRect.midX - side / 2.0, y: imageRect.midY - side / 2.0)
-        let overlay = AreaOverlay(kind: kind, rect: CGRect(origin: origin, size: CGSize(width: side, height: side)))
+        let overlay = AreaOverlay(kind: kind, rect: CGRect(origin: origin, size: CGSize(width: side, height: side)), color: color)
         overlays.append(overlay)
         selectedOverlayID = overlay.id
         needsDisplay = true
@@ -75,10 +104,8 @@ final class MapCanvasView: NSView {
     }
 
     override func scrollWheel(with event: NSEvent) {
-        if event.hasPreciseScrollingDeltas == false {
-            panOffset.x += event.scrollingDeltaX * 12.0
-            panOffset.y += event.scrollingDeltaY * 12.0
-            needsDisplay = true
+        if isPowerMateHelperEvent(event) {
+            panByScrollEvent(event)
             return
         }
 
@@ -163,8 +190,9 @@ final class MapCanvasView: NSView {
     private func drawOverlays() {
         for overlay in overlays {
             let selected = overlay.id == selectedOverlayID
-            let fill = NSColor.systemTeal.withAlphaComponent(selected ? 0.30 : 0.20)
-            let stroke = selected ? NSColor.white : NSColor.systemTeal
+            let overlayColor = overlay.color.nsColor
+            let fill = overlayColor.withAlphaComponent(selected ? 0.30 : 0.20)
+            let stroke = selected ? NSColor.white : overlayColor
             let path = rotatedPath(for: overlay)
             fill.setFill()
             stroke.setStroke()
@@ -273,6 +301,24 @@ final class MapCanvasView: NSView {
             x: (point.x - image.size.width / 2.0) * zoom + bounds.midX + panOffset.x,
             y: (point.y - image.size.height / 2.0) * zoom + bounds.midY + panOffset.y
         )
+    }
+
+    private func panByScrollEvent(_ event: NSEvent) {
+        panOffset.x += event.scrollingDeltaX * 12.0
+        panOffset.y += event.scrollingDeltaY * 12.0
+        needsDisplay = true
+    }
+
+    private func isPowerMateHelperEvent(_ event: NSEvent) -> Bool {
+        guard let pid = event.cgEvent?.getIntegerValueField(.eventSourceUnixProcessID),
+              pid > 0,
+              let app = NSRunningApplication(processIdentifier: pid_t(pid)) else {
+            return false
+        }
+
+        let appName = (app.localizedName ?? "").lowercased()
+        let bundleID = (app.bundleIdentifier ?? "").lowercased()
+        return appName.contains("powermate") || bundleID.contains("powermate")
     }
 }
 

@@ -34,6 +34,8 @@ enum MainMenuBuilder {
         areaMenu.addItem(withTitle: "Circle", action: #selector(AppDelegate.addCircleOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(withTitle: "Rectangle", action: #selector(AppDelegate.addRectangleOverlay(_:)), keyEquivalent: "")
         areaMenu.addItem(withTitle: "Cone", action: #selector(AppDelegate.addConeOverlay(_:)), keyEquivalent: "")
+        areaMenu.addItem(.separator())
+        areaMenu.addItem(withTitle: "Color", action: #selector(AppDelegate.chooseOverlayColor(_:)), keyEquivalent: "")
 
         let windowItem = NSMenuItem()
         menu.addItem(windowItem)
@@ -44,6 +46,54 @@ enum MainMenuBuilder {
         windowMenu.addItem(.separator())
         NSApp.windowsMenu = windowMenu
 
+        let displayItem = NSMenuItem()
+        menu.addItem(displayItem)
+        displayItem.submenu = DisplayMenuController.shared.menu
+
         return menu
+    }
+}
+
+final class DisplayMenuController: NSObject, NSMenuDelegate {
+    static let shared = DisplayMenuController()
+    let menu = NSMenu(title: "Display")
+
+    private override init() {
+        super.init()
+        menu.delegate = self
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        for (index, screen) in NSScreen.screens.enumerated() {
+            let item = NSMenuItem(title: displayName(for: screen, index: index), action: #selector(moveDocumentsToDisplay(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = screen
+            menu.addItem(item)
+        }
+
+        if NSScreen.screens.isEmpty {
+            let item = NSMenuItem(title: "No Displays", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
+    }
+
+    @objc private func moveDocumentsToDisplay(_ sender: NSMenuItem) {
+        guard let screen = sender.representedObject as? NSScreen else { return }
+        for document in NSDocumentController.shared.documents {
+            for controller in document.windowControllers {
+                (controller as? MapWindowController)?.moveToScreen(screen)
+            }
+        }
+    }
+
+    private func displayName(for screen: NSScreen, index: Int) -> String {
+        let name = screen.localizedName.isEmpty ? "Display \(index + 1)" : screen.localizedName
+        if screen == NSScreen.main {
+            return "\(name) (Main)"
+        }
+        return name
     }
 }

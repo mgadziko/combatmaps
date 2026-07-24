@@ -57,6 +57,28 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
         DocumentProfileStore.save(canvasView.profile, for: documentURL)
     }
 
+    func moveToScreen(_ screen: NSScreen) {
+        guard let window else { return }
+
+        let moveWindow = {
+            window.setFrame(screen.visibleFrame, display: true, animate: true)
+            window.makeKeyAndOrderFront(nil)
+        }
+
+        if window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                moveWindow()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    guard !window.styleMask.contains(.fullScreen) else { return }
+                    window.toggleFullScreen(nil)
+                }
+            }
+        } else {
+            moveWindow()
+        }
+    }
+
     private static func preferredScreen() -> NSScreen? {
         guard NSScreen.screens.count > 1 else {
             return NSScreen.main
