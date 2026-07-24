@@ -282,8 +282,12 @@ final class MapCanvasView: NSView {
             }
 
             if selected {
+                let handlePath = NSBezierPath(rect: resizeHandleRect(for: overlay.rect))
                 NSColor.white.setFill()
-                resizeHandleRect(for: overlay.rect).fill()
+                handlePath.fill()
+                NSColor.black.setStroke()
+                handlePath.lineWidth = 1.0 / zoom
+                handlePath.stroke()
             }
         }
     }
