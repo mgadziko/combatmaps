@@ -56,7 +56,6 @@ final class MapCanvasView: NSView {
     }
 
     override var acceptsFirstResponder: Bool { true }
-    override var isFlipped: Bool { true }
 
     init(image: NSImage) {
         self.image = image
