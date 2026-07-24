@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayColor = OverlayColor.systemTeal
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSWindow.allowsAutomaticWindowTabbing = false
         NSApp.mainMenu = MainMenuBuilder.build()
         NSApp.setActivationPolicy(.regular)
     }

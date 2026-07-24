@@ -23,7 +23,8 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
         )
         window.title = documentURL?.lastPathComponent ?? "CombatMaps"
         window.contentView = canvasView
-        window.collectionBehavior = [.fullScreenPrimary, .fullScreenAllowsTiling]
+        window.collectionBehavior = [.fullScreenPrimary]
+        window.tabbingMode = .disallowed
         super.init(window: window)
         window.delegate = self
         shouldCascadeWindows = false
