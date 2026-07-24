@@ -45,16 +45,23 @@ struct OverlayColor: Codable {
 }
 
 final class MapCanvasView: NSView {
+    static let zoomPresets: [CGFloat] = [0.25, 0.50, 0.75, 1.0, 1.25, 1.50, 2.0, 4.0, 8.0, 16.0]
+    static let rotationPresets = [0, 90, 180, 270]
+
     private let image: NSImage
     private var zoom: CGFloat = 1.0
     private var panOffset: CGPoint = .zero
+    private var mapRotationDegrees = 0
     private var overlays: [AreaOverlay] = []
     private var selectedOverlayID: UUID?
     private var dragState: DragState?
 
     var profile: DocumentProfile {
-        DocumentProfile(zoom: zoom, panOffset: panOffset)
+        DocumentProfile(zoom: zoom, panOffset: panOffset, mapRotationDegrees: mapRotationDegrees)
     }
+
+    var currentZoom: CGFloat { zoom }
+    var currentMapRotationDegrees: Int { mapRotationDegrees }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -73,6 +80,35 @@ final class MapCanvasView: NSView {
     func apply(profile: DocumentProfile) {
         zoom = max(0.05, min(20.0, profile.zoom))
         panOffset = profile.panOffset
+        mapRotationDegrees = Self.normalizedRotation(profile.mapRotationDegrees)
+        needsDisplay = true
+    }
+
+    func setZoom(_ magnification: CGFloat) {
+        zoom = max(0.05, min(20.0, magnification))
+        needsDisplay = true
+    }
+
+    func zoomInToNextPreset() -> Bool {
+        guard let next = Self.zoomPresets.first(where: { $0 > zoom + 0.0001 }) else {
+            NSSound.beep()
+            return false
+        }
+        setZoom(next)
+        return true
+    }
+
+    func zoomOutToNextPreset() -> Bool {
+        guard let next = Self.zoomPresets.reversed().first(where: { $0 < zoom - 0.0001 }) else {
+            NSSound.beep()
+            return false
+        }
+        setZoom(next)
+        return true
+    }
+
+    func setMapRotationDegrees(_ degrees: Int) {
+        mapRotationDegrees = Self.normalizedRotation(degrees)
         needsDisplay = true
     }
 
@@ -96,6 +132,7 @@ final class MapCanvasView: NSView {
         context?.saveGState()
         context?.translateBy(x: bounds.midX + panOffset.x, y: bounds.midY + panOffset.y)
         context?.scaleBy(x: zoom, y: zoom)
+        context?.rotate(by: CGFloat(mapRotationDegrees) * .pi / 180.0)
         context?.translateBy(x: -image.size.width / 2.0, y: -image.size.height / 2.0)
 
         image.draw(in: CGRect(origin: .zero, size: image.size), from: .zero, operation: .copy, fraction: 1.0)
@@ -353,27 +390,55 @@ final class MapCanvasView: NSView {
     }
 
     private func visibleImageRect() -> CGRect {
-        let topLeft = imagePoint(forViewPoint: bounds.origin)
-        let bottomRight = imagePoint(forViewPoint: CGPoint(x: bounds.maxX, y: bounds.maxY))
+        let points = [
+            imagePoint(forViewPoint: bounds.origin),
+            imagePoint(forViewPoint: CGPoint(x: bounds.maxX, y: bounds.minY)),
+            imagePoint(forViewPoint: CGPoint(x: bounds.minX, y: bounds.maxY)),
+            imagePoint(forViewPoint: CGPoint(x: bounds.maxX, y: bounds.maxY))
+        ]
+        let minX = points.map(\.x).min() ?? 0
+        let maxX = points.map(\.x).max() ?? 0
+        let minY = points.map(\.y).min() ?? 0
+        let maxY = points.map(\.y).max() ?? 0
         return CGRect(
-            x: min(topLeft.x, bottomRight.x),
-            y: min(topLeft.y, bottomRight.y),
-            width: abs(bottomRight.x - topLeft.x),
-            height: abs(bottomRight.y - topLeft.y)
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY
         )
     }
 
     private func imagePoint(forViewPoint point: CGPoint) -> CGPoint {
-        CGPoint(
-            x: (point.x - bounds.midX - panOffset.x) / zoom + image.size.width / 2.0,
-            y: (point.y - bounds.midY - panOffset.y) / zoom + image.size.height / 2.0
+        let scaledPoint = CGPoint(
+            x: (point.x - bounds.midX - panOffset.x) / zoom,
+            y: (point.y - bounds.midY - panOffset.y) / zoom
+        )
+        let unrotated = rotate(scaledPoint, byDegrees: -mapRotationDegrees)
+        return CGPoint(
+            x: unrotated.x + image.size.width / 2.0,
+            y: unrotated.y + image.size.height / 2.0
         )
     }
 
     private func viewPoint(forImagePoint point: CGPoint) -> CGPoint {
-        CGPoint(
-            x: (point.x - image.size.width / 2.0) * zoom + bounds.midX + panOffset.x,
-            y: (point.y - image.size.height / 2.0) * zoom + bounds.midY + panOffset.y
+        let centered = CGPoint(
+            x: point.x - image.size.width / 2.0,
+            y: point.y - image.size.height / 2.0
+        )
+        let rotated = rotate(centered, byDegrees: mapRotationDegrees)
+        return CGPoint(
+            x: rotated.x * zoom + bounds.midX + panOffset.x,
+            y: rotated.y * zoom + bounds.midY + panOffset.y
+        )
+    }
+
+    private func rotate(_ point: CGPoint, byDegrees degrees: Int) -> CGPoint {
+        let radians = CGFloat(degrees) * .pi / 180.0
+        let cosine = cos(radians)
+        let sine = sin(radians)
+        return CGPoint(
+            x: point.x * cosine - point.y * sine,
+            y: point.x * sine + point.y * cosine
         )
     }
 
@@ -393,6 +458,11 @@ final class MapCanvasView: NSView {
         let appName = (app.localizedName ?? "").lowercased()
         let bundleID = (app.bundleIdentifier ?? "").lowercased()
         return appName.contains("powermate") || bundleID.contains("powermate")
+    }
+
+    private static func normalizedRotation(_ degrees: Int) -> Int {
+        let normalized = degrees % 360
+        return normalized >= 0 ? normalized : normalized + 360
     }
 }
 

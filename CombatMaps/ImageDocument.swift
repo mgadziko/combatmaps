@@ -117,6 +117,26 @@ enum RecentDocumentStore {
 struct DocumentProfile: Codable {
     var zoom: CGFloat
     var panOffset: CGPoint
+    var mapRotationDegrees: Int = 0
+
+    private enum CodingKeys: String, CodingKey {
+        case zoom
+        case panOffset
+        case mapRotationDegrees
+    }
+
+    init(zoom: CGFloat, panOffset: CGPoint, mapRotationDegrees: Int = 0) {
+        self.zoom = zoom
+        self.panOffset = panOffset
+        self.mapRotationDegrees = mapRotationDegrees
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        zoom = try container.decode(CGFloat.self, forKey: .zoom)
+        panOffset = try container.decode(CGPoint.self, forKey: .panOffset)
+        mapRotationDegrees = try container.decodeIfPresent(Int.self, forKey: .mapRotationDegrees) ?? 0
+    }
 }
 
 enum DocumentProfileStore {

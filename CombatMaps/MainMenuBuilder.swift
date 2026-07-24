@@ -43,20 +43,138 @@ enum MainMenuBuilder {
         areaMenu.addItem(.separator())
         areaMenu.addItem(withTitle: "Color", action: #selector(AppDelegate.chooseOverlayColor(_:)), keyEquivalent: "")
 
-        let windowItem = NSMenuItem()
-        menu.addItem(windowItem)
-        let windowMenu = NSMenu(title: "Window")
-        windowItem.submenu = windowMenu
-        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m")
-        windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
-        windowMenu.addItem(.separator())
-        NSApp.windowsMenu = windowMenu
+        let mapViewItem = NSMenuItem()
+        menu.addItem(mapViewItem)
+        mapViewItem.submenu = MapViewMenuController.shared.menu
 
         let displayItem = NSMenuItem()
         menu.addItem(displayItem)
         displayItem.submenu = DisplayMenuController.shared.menu
 
         return menu
+    }
+}
+
+final class MapViewMenuController: NSObject, NSMenuDelegate {
+    static let shared = MapViewMenuController()
+    let menu = NSMenu(title: "Map View")
+
+    private override init() {
+        super.init()
+        menu.delegate = self
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let zoomItem = NSMenuItem(title: "Zoom", action: nil, keyEquivalent: "")
+        zoomItem.submenu = zoomMenu()
+        menu.addItem(zoomItem)
+
+        let rotateItem = NSMenuItem(title: "Rotate Map", action: nil, keyEquivalent: "")
+        rotateItem.submenu = rotateMenu()
+        menu.addItem(rotateItem)
+
+        let windowItems = openDocumentWindowItems()
+        if windowItems.isEmpty == false {
+            menu.addItem(.separator())
+            for item in windowItems {
+                menu.addItem(item)
+            }
+        }
+    }
+
+    private func zoomMenu() -> NSMenu {
+        let menu = NSMenu(title: "Zoom")
+        menu.addItem(withTitle: "Zoom In", action: #selector(zoomIn(_:)), keyEquivalent: "+").target = self
+        menu.addItem(withTitle: "Zoom Out", action: #selector(zoomOut(_:)), keyEquivalent: "-").target = self
+        menu.addItem(.separator())
+
+        let currentZoom = activeCanvasView()?.currentZoom
+        for preset in MapCanvasView.zoomPresets {
+            let item = NSMenuItem(title: "\(Int(preset * 100))%", action: #selector(setZoomPreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = preset
+            if let currentZoom, abs(currentZoom - preset) / preset <= 0.10 {
+                item.state = .on
+            }
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    private func rotateMenu() -> NSMenu {
+        let menu = NSMenu(title: "Rotate Map")
+        let currentRotation = activeCanvasView()?.currentMapRotationDegrees
+        for degrees in MapCanvasView.rotationPresets {
+            let item = NSMenuItem(title: "\(degrees)\u{00B0}", action: #selector(setRotation(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = degrees
+            if currentRotation == degrees {
+                item.state = .on
+            }
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    private func openDocumentWindowItems() -> [NSMenuItem] {
+        NSDocumentController.shared.documents.flatMap { document in
+            document.windowControllers.compactMap { controller -> NSMenuItem? in
+                guard let window = controller.window else { return nil }
+                let item = NSMenuItem(title: window.title, action: #selector(showWindow(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = window
+                if window.isKeyWindow {
+                    item.state = .on
+                }
+                return item
+            }
+        }
+    }
+
+    @objc private func zoomIn(_ sender: Any?) {
+        guard let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        _ = canvasView.zoomInToNextPreset()
+    }
+
+    @objc private func zoomOut(_ sender: Any?) {
+        guard let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        _ = canvasView.zoomOutToNextPreset()
+    }
+
+    @objc private func setZoomPreset(_ sender: NSMenuItem) {
+        guard let preset = sender.representedObject as? CGFloat,
+              let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        canvasView.setZoom(preset)
+    }
+
+    @objc private func setRotation(_ sender: NSMenuItem) {
+        guard let degrees = sender.representedObject as? Int,
+              let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        canvasView.setMapRotationDegrees(degrees)
+    }
+
+    @objc private func showWindow(_ sender: NSMenuItem) {
+        guard let window = sender.representedObject as? NSWindow else { return }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func activeCanvasView() -> MapCanvasView? {
+        (NSApp.delegate as? AppDelegate)?.activeCanvasView()
     }
 }
 

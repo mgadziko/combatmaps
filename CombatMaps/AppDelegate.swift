@@ -60,10 +60,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AboutBoxController.shared.show()
     }
 
-    private func activeCanvasView() -> MapCanvasView? {
-        guard let controller = NSApp.keyWindow?.windowController as? MapWindowController else {
-            return nil
+    func activeCanvasView() -> MapCanvasView? {
+        let candidateWindows = [NSApp.keyWindow, NSApp.mainWindow].compactMap { $0 } + NSApp.orderedWindows
+        for window in candidateWindows {
+            if let controller = window.windowController as? MapWindowController {
+                return controller.canvasView
+            }
         }
-        return controller.canvasView
+        return nil
     }
 }
