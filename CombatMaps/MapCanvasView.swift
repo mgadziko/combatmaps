@@ -121,7 +121,8 @@ final class MapCanvasView: NSView {
             guard let overlay = dragState.overlay,
                   let index = overlays.firstIndex(where: { $0.id == overlay.id }) else { return }
             let delta = CGPoint(x: imagePoint.x - dragState.startImagePoint.x, y: imagePoint.y - dragState.startImagePoint.y)
-            overlays[index].rect = overlay.rect.offsetBy(dx: delta.x, dy: delta.y)
+            let movedRect = overlay.rect.offsetBy(dx: delta.x, dy: delta.y)
+            overlays[index].rect = clampedOverlayRect(movedRect)
         case .resizeOverlay:
             guard let overlay = dragState.overlay,
                   let index = overlays.firstIndex(where: { $0.id == overlay.id }) else { return }
@@ -130,9 +131,9 @@ final class MapCanvasView: NSView {
             let height = max(minSide, imagePoint.y - overlay.rect.minY)
             if overlay.kind == .cone {
                 let side = max(width, height)
-                overlays[index].rect = CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: side, height: side)
+                overlays[index].rect = clampedOverlayRect(CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: side, height: side))
             } else {
-                overlays[index].rect = CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: width, height: height)
+                overlays[index].rect = clampedOverlayRect(CGRect(x: overlay.rect.minX, y: overlay.rect.minY, width: width, height: height))
             }
         }
         needsDisplay = true
@@ -175,44 +176,60 @@ final class MapCanvasView: NSView {
         switch overlay.kind {
         case .line:
             let path = NSBezierPath()
-            path.move(to: overlay.rect.origin)
-            path.line(to: CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY))
+            path.move(to: rotatedPoint(overlay.rect.origin, in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY), in: overlay))
             path.lineWidth = 6.0 / zoom
             return path
         case .circle:
             return NSBezierPath(ovalIn: overlay.rect)
         case .rectangle:
-            return NSBezierPath(rect: overlay.rect)
+            let path = NSBezierPath()
+            path.move(to: rotatedPoint(CGPoint(x: overlay.rect.minX, y: overlay.rect.minY), in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.minY), in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY), in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.minX, y: overlay.rect.maxY), in: overlay))
+            path.close()
+            return path
         case .cone:
             let path = NSBezierPath()
-            path.move(to: CGPoint(x: overlay.rect.midX, y: overlay.rect.minY))
-            path.line(to: CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY))
-            path.line(to: CGPoint(x: overlay.rect.minX, y: overlay.rect.maxY))
+            path.move(to: rotatedPoint(CGPoint(x: overlay.rect.midX, y: overlay.rect.minY), in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.maxX, y: overlay.rect.maxY), in: overlay))
+            path.line(to: rotatedPoint(CGPoint(x: overlay.rect.minX, y: overlay.rect.maxY), in: overlay))
             path.close()
             return path
         }
     }
 
     private func rotatedPath(for overlay: AreaOverlay) -> NSBezierPath {
-        let path = overlayPath(for: overlay)
-        guard overlay.rotationRadians != 0 else {
-            return path
+        overlayPath(for: overlay)
+    }
+
+    private func rotatedPoint(_ point: CGPoint, in overlay: AreaOverlay) -> CGPoint {
+        guard overlay.rotationRadians != 0 else { return point }
+        let center = CGPoint(x: overlay.rect.midX, y: overlay.rect.midY)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        let cosine = cos(overlay.rotationRadians)
+        let sine = sin(overlay.rotationRadians)
+        return CGPoint(
+            x: center.x + dx * cosine - dy * sine,
+            y: center.y + dx * sine + dy * cosine
+        )
+    }
+
+    private func clampedOverlayRect(_ rect: CGRect) -> CGRect {
+        let visibleRect = visibleImageRect().intersection(CGRect(origin: .zero, size: image.size))
+        guard visibleRect.isNull == false, visibleRect.isEmpty == false else {
+            return rect
         }
 
-        let transform = AffineTransform(
-            translationByX: overlay.rect.midX,
-            byY: overlay.rect.midY
-        )
-        let rotation = AffineTransform(rotationByRadians: overlay.rotationRadians)
-        let reverseTranslation = AffineTransform(
-            translationByX: -overlay.rect.midX,
-            byY: -overlay.rect.midY
-        )
-        var combined = transform
-        combined.append(rotation)
-        combined.append(reverseTranslation)
-        path.transform(using: combined)
-        return path
+        let minimumVisible = max(24.0 / zoom, 12.0)
+        var clamped = rect
+        clamped.origin.x = min(clamped.origin.x, visibleRect.maxX - minimumVisible)
+        clamped.origin.y = min(clamped.origin.y, visibleRect.maxY - minimumVisible)
+        clamped.origin.x = max(clamped.origin.x, visibleRect.minX - clamped.width + minimumVisible)
+        clamped.origin.y = max(clamped.origin.y, visibleRect.minY - clamped.height + minimumVisible)
+        return clamped
     }
 
     private func hitTestOverlay(at point: CGPoint) -> AreaOverlay? {

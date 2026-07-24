@@ -26,6 +26,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         activeCanvasView()?.addOverlay(kind: .cone)
     }
 
+    @objc func showAbout(_ sender: Any?) {
+        AboutBoxController.shared.show()
+    }
+
     private func activeCanvasView() -> MapCanvasView? {
         guard let controller = NSApp.keyWindow?.windowController as? MapWindowController else {
             return nil

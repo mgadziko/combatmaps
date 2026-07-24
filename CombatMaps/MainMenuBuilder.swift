@@ -8,7 +8,7 @@ enum MainMenuBuilder {
         menu.addItem(appItem)
         let appMenu = NSMenu(title: "CombatMaps")
         appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "About CombatMaps", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About CombatMaps", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit CombatMaps", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 

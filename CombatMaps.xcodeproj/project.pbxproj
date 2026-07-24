@@ -13,6 +13,8 @@
 		CM0000000000000000000004 /* ImageDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CM0000000000000000000014 /* ImageDocument.swift */; };
 		CM0000000000000000000005 /* MapWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CM0000000000000000000015 /* MapWindowController.swift */; };
 		CM0000000000000000000006 /* MapCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CM0000000000000000000016 /* MapCanvasView.swift */; };
+		CM0000000000000000000007 /* AboutBoxController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CM0000000000000000000019 /* AboutBoxController.swift */; };
+		CM0000000000000000000008 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = CM000000000000000000001B /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +27,9 @@
 		CM0000000000000000000016 /* MapCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCanvasView.swift; sourceTree = "<group>"; };
 		CM0000000000000000000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CM0000000000000000000018 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CM0000000000000000000019 /* AboutBoxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutBoxController.swift; sourceTree = "<group>"; };
+		CM000000000000000000001A /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
+		CM000000000000000000001B /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = CombatMaps/Resources/AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,7 +61,9 @@
 				CM0000000000000000000014 /* ImageDocument.swift */,
 				CM0000000000000000000015 /* MapWindowController.swift */,
 				CM0000000000000000000016 /* MapCanvasView.swift */,
+				CM0000000000000000000019 /* AboutBoxController.swift */,
 				CM0000000000000000000017 /* Info.plist */,
+				CM000000000000000000001A /* Resources */,
 			);
 			path = CombatMaps;
 			sourceTree = "<group>";
@@ -79,6 +86,7 @@
 				CM0000000000000000000041 /* Sources */,
 				CM0000000000000000000020 /* Frameworks */,
 				CM0000000000000000000042 /* Resources */,
+				CM0000000000000000000043 /* Stamp Build Timestamp */,
 			);
 			buildRules = (
 			);
@@ -127,10 +135,33 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CM0000000000000000000008 /* AppIcon.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		CM0000000000000000000043 /* Stamp Build Timestamp */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Stamp Build Timestamp";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "BUILD_TIMESTAMP=\"$(date +%y%m%d-%H%M)\"\nPLIST_PATH=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n\nif [ -f \"$PLIST_PATH\" ]; then\n    /usr/libexec/PlistBuddy -c \"Set :CombatMapsBuildTimestamp $BUILD_TIMESTAMP\" \"$PLIST_PATH\" 2>/dev/null || \\\n    /usr/libexec/PlistBuddy -c \"Add :CombatMapsBuildTimestamp string $BUILD_TIMESTAMP\" \"$PLIST_PATH\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		CM0000000000000000000041 /* Sources */ = {
@@ -143,6 +174,7 @@
 				CM0000000000000000000004 /* ImageDocument.swift in Sources */,
 				CM0000000000000000000005 /* MapWindowController.swift in Sources */,
 				CM0000000000000000000006 /* MapCanvasView.swift in Sources */,
+				CM0000000000000000000007 /* AboutBoxController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
