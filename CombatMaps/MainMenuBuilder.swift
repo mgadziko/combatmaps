@@ -75,6 +75,13 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
         rotateItem.submenu = rotateMenu()
         menu.addItem(rotateItem)
 
+        let fogItem = NSMenuItem(title: "Fog of War", action: #selector(toggleFogOfWar(_:)), keyEquivalent: "f")
+        fogItem.target = self
+        if activeCanvasView()?.isFogOfWarVisible == true {
+            fogItem.state = .on
+        }
+        menu.addItem(fogItem)
+
         let windowItems = openDocumentWindowItems()
         if windowItems.isEmpty == false {
             menu.addItem(.separator())
@@ -165,6 +172,14 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
             return
         }
         canvasView.setMapRotationDegrees(degrees)
+    }
+
+    @objc private func toggleFogOfWar(_ sender: Any?) {
+        guard let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        canvasView.toggleFogOfWar()
     }
 
     @objc private func showWindow(_ sender: NSMenuItem) {

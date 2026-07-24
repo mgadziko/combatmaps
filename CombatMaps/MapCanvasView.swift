@@ -52,16 +52,27 @@ final class MapCanvasView: NSView {
     private var zoom: CGFloat = 1.0
     private var panOffset: CGPoint = .zero
     private var mapRotationDegrees = 0
+    private var fogOfWarVisible = false
+    private var fogOpeningCenter: CGPoint?
+    private var fogOpeningDiameter: CGFloat?
     private var overlays: [AreaOverlay] = []
     private var selectedOverlayID: UUID?
     private var dragState: DragState?
 
     var profile: DocumentProfile {
-        DocumentProfile(zoom: zoom, panOffset: panOffset, mapRotationDegrees: mapRotationDegrees)
+        DocumentProfile(
+            zoom: zoom,
+            panOffset: panOffset,
+            mapRotationDegrees: mapRotationDegrees,
+            fogOfWarVisible: fogOfWarVisible,
+            fogOpeningCenter: fogOpeningCenter,
+            fogOpeningDiameter: fogOpeningDiameter
+        )
     }
 
     var currentZoom: CGFloat { zoom }
     var currentMapRotationDegrees: Int { mapRotationDegrees }
+    var isFogOfWarVisible: Bool { fogOfWarVisible }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -81,6 +92,9 @@ final class MapCanvasView: NSView {
         zoom = max(0.05, min(20.0, profile.zoom))
         panOffset = profile.panOffset
         mapRotationDegrees = Self.normalizedRotation(profile.mapRotationDegrees)
+        fogOfWarVisible = profile.fogOfWarVisible
+        fogOpeningCenter = profile.fogOpeningCenter
+        fogOpeningDiameter = profile.fogOpeningDiameter
         needsDisplay = true
     }
 
@@ -112,6 +126,16 @@ final class MapCanvasView: NSView {
         needsDisplay = true
     }
 
+    func toggleFogOfWar() {
+        fogOfWarVisible.toggle()
+        if fogOfWarVisible {
+            ensureFogOpening()
+        } else if case .moveFogOpening = dragState?.mode {
+            dragState = nil
+        }
+        needsDisplay = true
+    }
+
     func addOverlay(kind: OverlayKind, color: OverlayColor) {
         window?.makeFirstResponder(self)
         let imageRect = visibleImageRect()
@@ -138,11 +162,19 @@ final class MapCanvasView: NSView {
         image.draw(in: CGRect(origin: .zero, size: image.size), from: .zero, operation: .copy, fraction: 1.0)
         drawOverlays()
         context?.restoreGState()
+
+        drawFogOfWar()
     }
 
     override func scrollWheel(with event: NSEvent) {
         if isPowerMateHelperEvent(event) {
             panByScrollEvent(event)
+            return
+        }
+
+        let cursor = convert(event.locationInWindow, from: nil)
+        if fogGrayAreaContainsViewPoint(cursor) {
+            resizeFogOpening(with: event)
             return
         }
 
@@ -154,7 +186,6 @@ final class MapCanvasView: NSView {
             return
         }
 
-        let cursor = convert(event.locationInWindow, from: nil)
         let before = imagePoint(forViewPoint: cursor)
         let factor = pow(1.0045, delta)
         zoom = max(0.05, min(20.0, zoom * factor))
@@ -168,7 +199,10 @@ final class MapCanvasView: NSView {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)
         let imagePoint = imagePoint(forViewPoint: point)
-        if let hit = hitTestOverlay(at: imagePoint) {
+        if fogGrayAreaContainsViewPoint(point) {
+            selectedOverlayID = nil
+            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, mode: .moveFogOpening)
+        } else if let hit = hitTestOverlay(at: imagePoint) {
             selectedOverlayID = hit.id
             let resize = resizeHandleRect(for: hit.rect).contains(imagePoint)
             dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: hit, mode: resize ? .resizeOverlay : .moveOverlay)
@@ -184,6 +218,11 @@ final class MapCanvasView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         let imagePoint = imagePoint(forViewPoint: point)
         switch dragState.mode {
+        case .moveFogOpening:
+            guard let center = fogOpeningCenter else { return }
+            let delta = CGPoint(x: imagePoint.x - dragState.startImagePoint.x, y: imagePoint.y - dragState.startImagePoint.y)
+            fogOpeningCenter = CGPoint(x: center.x + delta.x, y: center.y + delta.y)
+            self.dragState?.startImagePoint = imagePoint
         case .pan:
             panOffset.x += point.x - dragState.startViewPoint.x
             panOffset.y += point.y - dragState.startViewPoint.y
@@ -247,6 +286,33 @@ final class MapCanvasView: NSView {
                 resizeHandleRect(for: overlay.rect).fill()
             }
         }
+    }
+
+    private func drawFogOfWar() {
+        guard fogOfWarVisible else { return }
+        ensureFogOpening()
+        guard let center = fogOpeningCenter,
+              let diameter = fogOpeningDiameter else { return }
+
+        let viewCenter = viewPoint(forImagePoint: center)
+        let viewDiameter = max(1.0, diameter * zoom)
+        let openingRect = CGRect(
+            x: viewCenter.x - viewDiameter / 2.0,
+            y: viewCenter.y - viewDiameter / 2.0,
+            width: viewDiameter,
+            height: viewDiameter
+        )
+
+        let path = NSBezierPath(rect: bounds)
+        path.appendOval(in: openingRect)
+        path.windingRule = .evenOdd
+        NSColor(calibratedWhite: 0.38, alpha: 1.0).setFill()
+        path.fill()
+
+        NSColor(calibratedWhite: 0.82, alpha: 0.65).setStroke()
+        let outline = NSBezierPath(ovalIn: openingRect)
+        outline.lineWidth = 2.0
+        outline.stroke()
     }
 
     private func overlayPath(for overlay: AreaOverlay) -> NSBezierPath {
@@ -432,6 +498,40 @@ final class MapCanvasView: NSView {
         )
     }
 
+    private func ensureFogOpening() {
+        if fogOpeningCenter == nil {
+            fogOpeningCenter = imagePoint(forViewPoint: CGPoint(x: bounds.midX, y: bounds.midY))
+        }
+        if fogOpeningDiameter == nil || fogOpeningDiameter ?? 0 <= 0 {
+            fogOpeningDiameter = defaultFogOpeningDiameter()
+        }
+    }
+
+    private func defaultFogOpeningDiameter() -> CGFloat {
+        let screenHeight = window?.screen?.visibleFrame.height ?? NSScreen.main?.visibleFrame.height ?? bounds.height
+        return max(20.0 / zoom, (screenHeight * 0.5) / max(zoom, 0.0001))
+    }
+
+    private func fogGrayAreaContainsViewPoint(_ point: CGPoint) -> Bool {
+        guard fogOfWarVisible else { return false }
+        ensureFogOpening()
+        guard let center = fogOpeningCenter,
+              let diameter = fogOpeningDiameter else { return false }
+        let viewCenter = viewPoint(forImagePoint: center)
+        let radius = diameter * zoom / 2.0
+        let distance = hypot(point.x - viewCenter.x, point.y - viewCenter.y)
+        return distance > radius
+    }
+
+    private func resizeFogOpening(with event: NSEvent) {
+        ensureFogOpening()
+        guard let diameter = fogOpeningDiameter else { return }
+        let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : -event.scrollingDeltaX
+        let factor = pow(1.0045, delta)
+        fogOpeningDiameter = max(20.0 / zoom, min(max(image.size.width, image.size.height) * 2.0, diameter * factor))
+        needsDisplay = true
+    }
+
     private func rotate(_ point: CGPoint, byDegrees degrees: Int) -> CGPoint {
         let radians = CGFloat(degrees) * .pi / 180.0
         let cosine = cos(radians)
@@ -468,13 +568,14 @@ final class MapCanvasView: NSView {
 
 private struct DragState {
     enum Mode {
+        case moveFogOpening
         case pan
         case moveOverlay
         case resizeOverlay
     }
 
     var startViewPoint: CGPoint
-    let startImagePoint: CGPoint
+    var startImagePoint: CGPoint
     let overlay: AreaOverlay?
     let mode: Mode
 }

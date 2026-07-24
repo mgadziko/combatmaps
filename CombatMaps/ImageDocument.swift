@@ -118,17 +118,33 @@ struct DocumentProfile: Codable {
     var zoom: CGFloat
     var panOffset: CGPoint
     var mapRotationDegrees: Int = 0
+    var fogOfWarVisible: Bool = false
+    var fogOpeningCenter: CGPoint?
+    var fogOpeningDiameter: CGFloat?
 
     private enum CodingKeys: String, CodingKey {
         case zoom
         case panOffset
         case mapRotationDegrees
+        case fogOfWarVisible
+        case fogOpeningCenter
+        case fogOpeningDiameter
     }
 
-    init(zoom: CGFloat, panOffset: CGPoint, mapRotationDegrees: Int = 0) {
+    init(
+        zoom: CGFloat,
+        panOffset: CGPoint,
+        mapRotationDegrees: Int = 0,
+        fogOfWarVisible: Bool = false,
+        fogOpeningCenter: CGPoint? = nil,
+        fogOpeningDiameter: CGFloat? = nil
+    ) {
         self.zoom = zoom
         self.panOffset = panOffset
         self.mapRotationDegrees = mapRotationDegrees
+        self.fogOfWarVisible = fogOfWarVisible
+        self.fogOpeningCenter = fogOpeningCenter
+        self.fogOpeningDiameter = fogOpeningDiameter
     }
 
     init(from decoder: Decoder) throws {
@@ -136,6 +152,9 @@ struct DocumentProfile: Codable {
         zoom = try container.decode(CGFloat.self, forKey: .zoom)
         panOffset = try container.decode(CGPoint.self, forKey: .panOffset)
         mapRotationDegrees = try container.decodeIfPresent(Int.self, forKey: .mapRotationDegrees) ?? 0
+        fogOfWarVisible = try container.decodeIfPresent(Bool.self, forKey: .fogOfWarVisible) ?? false
+        fogOpeningCenter = try container.decodeIfPresent(CGPoint.self, forKey: .fogOpeningCenter)
+        fogOpeningDiameter = try container.decodeIfPresent(CGFloat.self, forKey: .fogOpeningDiameter)
     }
 }
 
