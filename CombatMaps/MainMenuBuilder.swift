@@ -8,14 +8,16 @@ enum MainMenuBuilder {
         menu.addItem(appItem)
         let appMenu = NSMenu(title: "CombatMaps")
         appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "About CombatMaps", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
+        let aboutItem = appMenu.addItem(withTitle: "About CombatMaps", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
+        aboutItem.target = NSApp.delegate
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Hide CombatMaps", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Hide CombatMaps", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h").target = NSApp
         let hideOthersItem = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthersItem.target = NSApp
         hideOthersItem.keyEquivalentModifierMask = [.command, .option]
-        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "").target = NSApp
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit CombatMaps", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit CombatMaps", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q").target = NSApp
 
         let fileItem = NSMenuItem()
         menu.addItem(fileItem)
