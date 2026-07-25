@@ -1,5 +1,3 @@
 # CombatMaps
 
-CombatMaps is a read-only macOS document viewer for `.gif`, `.jpg`, `.jpeg`, `.png`, and `.pdf` files.
-
-The app opens image documents full-screen when possible, prefers a non-primary display when more than one display is connected, supports cursor-centered wheel zooming, drag panning, and movable/resizable transparent area-of-effect overlays.
+CombatMaps is a macOS document viewer for gaming with miniatures on a tv lying flat on a table. Includes simple overlays for area of effect spells, and rudimentary Fog of War occlusion. Enjoy!

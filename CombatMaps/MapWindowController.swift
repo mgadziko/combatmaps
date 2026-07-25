@@ -39,14 +39,17 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
             window.setFrame(targetScreen.visibleFrame, display: false)
         }
         super.showWindow(sender)
-        window?.makeKeyAndOrderFront(sender)
-        NSApp.activate(ignoringOtherApps: true)
+        bringDocumentToForeground()
         guard ProcessInfo.processInfo.environment["COMBATMAPS_DISABLE_FULLSCREEN"] != "1" else {
             return
         }
         DispatchQueue.main.async { [weak self] in
-            guard let window = self?.window, !window.styleMask.contains(.fullScreen) else { return }
+            guard let self, let window = self.window, !window.styleMask.contains(.fullScreen) else { return }
             window.toggleFullScreen(nil)
+            self.bringDocumentToForeground()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.bringDocumentToForeground()
+            }
         }
     }
 
@@ -56,6 +59,15 @@ final class MapWindowController: NSWindowController, NSWindowDelegate {
 
     func saveProfile() {
         DocumentProfileStore.save(canvasView.profile, for: documentURL)
+    }
+
+    private func bringDocumentToForeground() {
+        guard let window else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        window.deminiaturize(nil)
+        window.makeKeyAndOrderFront(nil)
+        window.makeMain()
+        window.makeFirstResponder(canvasView)
     }
 
     func moveToScreen(_ screen: NSScreen) {

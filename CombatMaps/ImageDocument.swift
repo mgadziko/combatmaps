@@ -24,6 +24,7 @@ final class ImageDocument: NSDocument {
         image = loadedImage
         fileURL = url
         RecentDocumentStore.record(url)
+        (NSApp.delegate as? AppDelegate)?.noteDocumentOpened()
     }
 
     override func data(ofType typeName: String) throws -> Data {
