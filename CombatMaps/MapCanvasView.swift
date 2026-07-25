@@ -239,17 +239,17 @@ final class MapCanvasView: NSView {
         let imagePoint = imagePoint(forViewPoint: point)
         if let corner = fogRectangleResizeCorner(at: point) {
             selectedOverlayID = nil
-            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartRect: fogOpeningImageRect(), mode: .resizeFogRectangle(corner))
+            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartViewRect: fogOpeningViewRect(), mode: .resizeFogRectangle(corner))
         } else if fogGrayAreaContainsViewPoint(point) {
             selectedOverlayID = nil
-            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartRect: nil, mode: .moveFogOpening)
+            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartViewRect: nil, mode: .moveFogOpening)
         } else if let hit = hitTestOverlay(at: imagePoint) {
             selectedOverlayID = hit.id
             let resize = resizeHandleRect(for: hit.rect).contains(imagePoint)
-            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: hit, fogRectangleStartRect: nil, mode: resize ? .resizeOverlay : .moveOverlay)
+            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: hit, fogRectangleStartViewRect: nil, mode: resize ? .resizeOverlay : .moveOverlay)
         } else {
             selectedOverlayID = nil
-            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartRect: nil, mode: .pan)
+            dragState = DragState(startViewPoint: point, startImagePoint: imagePoint, overlay: nil, fogRectangleStartViewRect: nil, mode: .pan)
         }
         needsDisplay = true
     }
@@ -265,8 +265,8 @@ final class MapCanvasView: NSView {
             fogOpeningCenter = CGPoint(x: center.x + delta.x, y: center.y + delta.y)
             self.dragState?.startImagePoint = imagePoint
         case .resizeFogRectangle(let corner):
-            guard let startRect = dragState.fogRectangleStartRect else { return }
-            resizeFogRectangle(from: startRect, to: imagePoint, dragging: corner)
+            guard let startRect = dragState.fogRectangleStartViewRect else { return }
+            resizeFogRectangle(fromViewRect: startRect, toViewPoint: point, dragging: corner)
         case .pan:
             panOffset.x += point.x - dragState.startViewPoint.x
             panOffset.y += point.y - dragState.startViewPoint.y
@@ -643,29 +643,19 @@ final class MapCanvasView: NSView {
     private func fogRectangleResizeCorner(at point: CGPoint) -> FogRectangleCorner? {
         guard fogOfWarVisible, fogOfWarShape == .rectangle else { return nil }
         let rect = fogOpeningViewRect()
-        return FogRectangleCorner.allCases.first { corner in
-            fogRectangleHandleRect(for: corner, in: rect).insetBy(dx: -8.0, dy: -8.0).contains(point)
-        }
+        return FogRectangleCorner.allCases
+            .filter { fogRectangleHandleRect(for: $0, in: rect).insetBy(dx: -8.0, dy: -8.0).contains(point) }
+            .min { distanceSquared(from: point, to: $0.point(in: rect)) < distanceSquared(from: point, to: $1.point(in: rect)) }
     }
 
     private func fogRectangleHandleRect(for corner: FogRectangleCorner, in rect: CGRect) -> CGRect {
         let size: CGFloat = 14.0
-        let point: CGPoint
-        switch corner {
-        case .lowerLeft:
-            point = CGPoint(x: rect.minX, y: rect.minY)
-        case .lowerRight:
-            point = CGPoint(x: rect.maxX, y: rect.minY)
-        case .upperLeft:
-            point = CGPoint(x: rect.minX, y: rect.maxY)
-        case .upperRight:
-            point = CGPoint(x: rect.maxX, y: rect.maxY)
-        }
+        let point = corner.point(in: rect)
         return CGRect(x: point.x - size / 2.0, y: point.y - size / 2.0, width: size, height: size)
     }
 
-    private func resizeFogRectangle(from rect: CGRect, to imagePoint: CGPoint, dragging corner: FogRectangleCorner) {
-        let minSide = max(20.0 / zoom, 8.0)
+    private func resizeFogRectangle(fromViewRect rect: CGRect, toViewPoint point: CGPoint, dragging corner: FogRectangleCorner) {
+        let minSide: CGFloat = 20.0
         let opposite: CGPoint
         switch corner {
         case .lowerLeft:
@@ -678,13 +668,13 @@ final class MapCanvasView: NSView {
             opposite = CGPoint(x: rect.minX, y: rect.minY)
         }
 
-        var minX = min(opposite.x, imagePoint.x)
-        var maxX = max(opposite.x, imagePoint.x)
-        var minY = min(opposite.y, imagePoint.y)
-        var maxY = max(opposite.y, imagePoint.y)
+        var minX = min(opposite.x, point.x)
+        var maxX = max(opposite.x, point.x)
+        var minY = min(opposite.y, point.y)
+        var maxY = max(opposite.y, point.y)
 
         if maxX - minX < minSide {
-            if imagePoint.x < opposite.x {
+            if point.x < opposite.x {
                 minX = opposite.x - minSide
                 maxX = opposite.x
             } else {
@@ -693,7 +683,7 @@ final class MapCanvasView: NSView {
             }
         }
         if maxY - minY < minSide {
-            if imagePoint.y < opposite.y {
+            if point.y < opposite.y {
                 minY = opposite.y - minSide
                 maxY = opposite.y
             } else {
@@ -702,8 +692,15 @@ final class MapCanvasView: NSView {
             }
         }
 
-        fogOpeningCenter = CGPoint(x: (minX + maxX) / 2.0, y: (minY + maxY) / 2.0)
-        fogOpeningRectSize = CGSize(width: maxX - minX, height: maxY - minY)
+        let viewRect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+        fogOpeningCenter = imagePoint(forViewPoint: CGPoint(x: viewRect.midX, y: viewRect.midY))
+        fogOpeningRectSize = CGSize(width: viewRect.width / max(zoom, 0.0001), height: viewRect.height / max(zoom, 0.0001))
+    }
+
+    private func distanceSquared(from point: CGPoint, to other: CGPoint) -> CGFloat {
+        let dx = point.x - other.x
+        let dy = point.y - other.y
+        return dx * dx + dy * dy
     }
 
     private func rotate(_ point: CGPoint, byDegrees degrees: Int) -> CGPoint {
@@ -745,6 +742,19 @@ private enum FogRectangleCorner: CaseIterable {
     case lowerRight
     case upperLeft
     case upperRight
+
+    func point(in rect: CGRect) -> CGPoint {
+        switch self {
+        case .lowerLeft:
+            return CGPoint(x: rect.minX, y: rect.minY)
+        case .lowerRight:
+            return CGPoint(x: rect.maxX, y: rect.minY)
+        case .upperLeft:
+            return CGPoint(x: rect.minX, y: rect.maxY)
+        case .upperRight:
+            return CGPoint(x: rect.maxX, y: rect.maxY)
+        }
+    }
 }
 
 private struct DragState {
@@ -768,6 +778,6 @@ private struct DragState {
     var startViewPoint: CGPoint
     var startImagePoint: CGPoint
     let overlay: AreaOverlay?
-    let fogRectangleStartRect: CGRect?
+    let fogRectangleStartViewRect: CGRect?
     let mode: Mode
 }
