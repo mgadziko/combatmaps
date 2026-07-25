@@ -84,6 +84,10 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
         }
         menu.addItem(fogItem)
 
+        let fogShapeItem = NSMenuItem(title: "Toggle Fog of War Shape", action: #selector(toggleFogOfWarShape(_:)), keyEquivalent: "t")
+        fogShapeItem.target = self
+        menu.addItem(fogShapeItem)
+
         let windowItems = openDocumentWindowItems()
         if windowItems.isEmpty == false {
             menu.addItem(.separator())
@@ -182,6 +186,14 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
             return
         }
         canvasView.toggleFogOfWar()
+    }
+
+    @objc private func toggleFogOfWarShape(_ sender: Any?) {
+        guard let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        canvasView.toggleFogOfWarShape()
     }
 
     @objc private func showWindow(_ sender: NSMenuItem) {

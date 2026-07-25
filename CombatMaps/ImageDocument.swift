@@ -119,8 +119,10 @@ struct DocumentProfile: Codable {
     var panOffset: CGPoint
     var mapRotationDegrees: Int = 0
     var fogOfWarVisible: Bool = false
+    var fogOfWarShape: FogOfWarShape = .circle
     var fogOpeningCenter: CGPoint?
     var fogOpeningDiameter: CGFloat?
+    var fogOpeningRectSize: CGSize?
     var overlays: [AreaOverlay] = []
 
     private enum CodingKeys: String, CodingKey {
@@ -128,8 +130,10 @@ struct DocumentProfile: Codable {
         case panOffset
         case mapRotationDegrees
         case fogOfWarVisible
+        case fogOfWarShape
         case fogOpeningCenter
         case fogOpeningDiameter
+        case fogOpeningRectSize
         case overlays
     }
 
@@ -138,16 +142,20 @@ struct DocumentProfile: Codable {
         panOffset: CGPoint,
         mapRotationDegrees: Int = 0,
         fogOfWarVisible: Bool = false,
+        fogOfWarShape: FogOfWarShape = .circle,
         fogOpeningCenter: CGPoint? = nil,
         fogOpeningDiameter: CGFloat? = nil,
+        fogOpeningRectSize: CGSize? = nil,
         overlays: [AreaOverlay] = []
     ) {
         self.zoom = zoom
         self.panOffset = panOffset
         self.mapRotationDegrees = mapRotationDegrees
         self.fogOfWarVisible = fogOfWarVisible
+        self.fogOfWarShape = fogOfWarShape
         self.fogOpeningCenter = fogOpeningCenter
         self.fogOpeningDiameter = fogOpeningDiameter
+        self.fogOpeningRectSize = fogOpeningRectSize
         self.overlays = overlays
     }
 
@@ -157,8 +165,10 @@ struct DocumentProfile: Codable {
         panOffset = try container.decode(CGPoint.self, forKey: .panOffset)
         mapRotationDegrees = try container.decodeIfPresent(Int.self, forKey: .mapRotationDegrees) ?? 0
         fogOfWarVisible = try container.decodeIfPresent(Bool.self, forKey: .fogOfWarVisible) ?? false
+        fogOfWarShape = try container.decodeIfPresent(FogOfWarShape.self, forKey: .fogOfWarShape) ?? .circle
         fogOpeningCenter = try container.decodeIfPresent(CGPoint.self, forKey: .fogOpeningCenter)
         fogOpeningDiameter = try container.decodeIfPresent(CGFloat.self, forKey: .fogOpeningDiameter)
+        fogOpeningRectSize = try container.decodeIfPresent(CGSize.self, forKey: .fogOpeningRectSize)
         overlays = try container.decodeIfPresent([AreaOverlay].self, forKey: .overlays) ?? []
     }
 }
