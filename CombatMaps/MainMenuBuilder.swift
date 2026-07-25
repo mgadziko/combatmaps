@@ -23,7 +23,7 @@ enum MainMenuBuilder {
         menu.addItem(fileItem)
         let fileMenu = NSMenu(title: "File")
         fileItem.submenu = fileMenu
-        fileMenu.addItem(withTitle: "Open", action: #selector(NSDocumentController.openDocument(_:)), keyEquivalent: "o")
+        fileMenu.addItem(withTitle: "Open", action: #selector(NSDocumentController.openDocument(_:)), keyEquivalent: "o").target = NSDocumentController.shared
 
         let recentItem = NSMenuItem(title: "Open Recent", action: nil, keyEquivalent: "")
         let recentMenu = RecentDocumentsMenuController.shared.menu
@@ -31,7 +31,7 @@ enum MainMenuBuilder {
         fileMenu.addItem(recentItem)
 
         fileMenu.addItem(.separator())
-        fileMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        fileMenu.addItem(withTitle: "Close", action: #selector(AppDelegate.closeActiveWindow(_:)), keyEquivalent: "w").target = NSApp.delegate
 
         let areaItem = NSMenuItem()
         menu.addItem(areaItem)

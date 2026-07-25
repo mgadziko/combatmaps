@@ -66,6 +66,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AboutBoxController.shared.show()
     }
 
+    @objc func closeActiveWindow(_ sender: Any?) {
+        (NSApp.keyWindow ?? NSApp.mainWindow)?.performClose(sender)
+    }
+
     func activeCanvasView() -> MapCanvasView? {
         let candidateWindows = [NSApp.keyWindow, NSApp.mainWindow].compactMap { $0 } + NSApp.orderedWindows
         for window in candidateWindows {
