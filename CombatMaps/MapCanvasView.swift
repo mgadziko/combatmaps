@@ -150,6 +150,23 @@ final class MapCanvasView: NSView {
         needsDisplay = true
     }
 
+    func selectedOverlayColor() -> OverlayColor? {
+        guard let selectedOverlayID,
+              let overlay = overlays.first(where: { $0.id == selectedOverlayID }) else {
+            return nil
+        }
+        return overlay.color
+    }
+
+    func setSelectedOverlayColor(_ color: OverlayColor) {
+        guard let selectedOverlayID,
+              let index = overlays.firstIndex(where: { $0.id == selectedOverlayID }) else {
+            return
+        }
+        overlays[index].color = color
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         NSColor.black.setFill()
         bounds.fill()

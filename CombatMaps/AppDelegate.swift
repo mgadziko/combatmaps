@@ -2,6 +2,7 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayColor = OverlayColor.systemTeal
+    private weak var colorTargetCanvasView: MapCanvasView?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -45,16 +46,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func chooseOverlayColor(_ sender: Any?) {
+        let canvasView = activeCanvasView()
+        colorTargetCanvasView = canvasView
         let panel = NSColorPanel.shared
         panel.setTarget(self)
         panel.setAction(#selector(overlayColorChanged(_:)))
-        panel.color = overlayColor.nsColor
+        panel.color = canvasView?.selectedOverlayColor()?.nsColor ?? overlayColor.nsColor
         panel.orderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func overlayColorChanged(_ sender: NSColorPanel) {
-        overlayColor = OverlayColor(sender.color)
+        let color = OverlayColor(sender.color)
+        overlayColor = color
+        (colorTargetCanvasView ?? activeCanvasView())?.setSelectedOverlayColor(color)
     }
 
     @objc func showAbout(_ sender: Any?) {
