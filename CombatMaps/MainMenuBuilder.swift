@@ -84,6 +84,10 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
         }
         menu.addItem(fogItem)
 
+        let recenterFogItem = NSMenuItem(title: "Re-center Fog of War", action: #selector(recenterFogOfWar(_:)), keyEquivalent: "r")
+        recenterFogItem.target = self
+        menu.addItem(recenterFogItem)
+
         let fogShapeItem = NSMenuItem(title: "Toggle Fog of War Shape", action: #selector(toggleFogOfWarShape(_:)), keyEquivalent: "t")
         fogShapeItem.target = self
         menu.addItem(fogShapeItem)
@@ -186,6 +190,14 @@ final class MapViewMenuController: NSObject, NSMenuDelegate {
             return
         }
         canvasView.toggleFogOfWar()
+    }
+
+    @objc private func recenterFogOfWar(_ sender: Any?) {
+        guard let canvasView = activeCanvasView() else {
+            NSSound.beep()
+            return
+        }
+        canvasView.recenterFogOfWarOpening()
     }
 
     @objc private func toggleFogOfWarShape(_ sender: Any?) {

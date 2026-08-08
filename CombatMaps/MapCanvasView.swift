@@ -157,6 +157,12 @@ final class MapCanvasView: NSView {
         needsDisplay = true
     }
 
+    func recenterFogOfWarOpening() {
+        ensureFogOpening()
+        fogOpeningCenter = imagePoint(forViewPoint: CGPoint(x: bounds.midX, y: bounds.midY))
+        needsDisplay = true
+    }
+
     func addOverlay(kind: OverlayKind, color: OverlayColor) {
         window?.makeFirstResponder(self)
         let imageRect = visibleImageRect()
